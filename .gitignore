@@ -1,0 +1,13 @@
+.venv/
+dist/
+*.swp
+*.pyc
+*.pl
+*.joblib
+*.pl
+*.egg-info/
+*.mypy_cache/
+**.ipynb_checkpoints/
+.DS_Store
+**secret.py
+requirements.txt
