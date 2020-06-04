@@ -1,2 +1,2 @@
 runtime: python37
-entrypoint: gunicorn --workers 1 --worker-class gevent --bind :$PORT app:application
+entrypoint: gunicorn --preload --worker-class eventlet -w 1 -b :$PORT kings:app

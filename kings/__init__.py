@@ -9,6 +9,7 @@ BACK_CARD = "🂠"
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "lolsosecret"
 socketio = SocketIO(app)
+socketio.init_app(app, cors_allowed_origins="*")
 
 
 class Deck:
@@ -16,7 +17,9 @@ class Deck:
         self.cards = self.shuffle()
 
     def shuffle(self):
-        return random.sample(BLK_CARDS + RED_CARDS, len(BLK_CARDS + RED_CARDS)) + [BACK_CARD]
+        return random.sample(BLK_CARDS + RED_CARDS, len(BLK_CARDS + RED_CARDS)) + [
+            BACK_CARD
+        ]
 
     def format_card(self, card):
         if card in BACK_CARD:
