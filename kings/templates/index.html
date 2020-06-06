@@ -42,10 +42,10 @@
 <body>
   <center>
     <div>
-      <font id="next-players-turn">{{ player|safe }}</font>
+      <h3>Coming up is.. <font id="next-players-turn">{{ player|safe }}</font> !</h3>
     </div>
     <div>
-      <font id="current-players-turn">{{ player|safe }}</font>
+      <h1>But first, <font id="current-players-turn">{{ player|safe }}</font> drew...</h1>
     </div>
     <div>
       <font id="top-card">{{ card|safe }}</font>
@@ -58,70 +58,109 @@
       <input type="button" id="save" value="Save" />
     </div>
   </center>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='js/clippy.css') }}" media="all">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+  <script src="{{ url_for('static', filename='js/name.js') }}"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="{{ url_for('static', filename='js/clippy.js') }}"></script>
+  <script type="text/javascript" type="text/javascript" charset="utf-8">
+    $(function () {
+      let user = {
+        id: Math.floor(Math.random() * Math.floor(10000)),
+        name: generateName()
+      }
+      var socket = io();
+      let clippyAgent = null
+
+      let setState = (data) => {
+        $("#name").attr("placeholder", "Your name: " + user.name);
+        $("#next-players-turn").empty().append(data.nextPlayer.name)
+        $("#current-players-turn").empty().append(data.currentPlayer.name)
+
+        // $('h3').jumble([130, 100, 110], [230, 20, 130], true, true, 1000);
+        // $('h1').jumble([180, 160, 90], [230, 20, 130], true, false, 600);
+      }
+
+      let chooseClippyAgent = () => {
+        let agents = [
+          "Bonzi",
+          "Clippy",
+          "F1",
+          "Genie",
+          "Links",
+          "Merlin",
+          "Peedy",
+          "Rocky",
+          "Rover",
+        ];
+
+        let randomAgent = agents[Math.floor(Math.random()*agents.length)]
+        return randomAgent
+      }
+
+      let clippyAgentJoke = () => {
+        $.getJSON( "https://official-joke-api.appspot.com/random_joke", function( data ) {
+          console.log(data)
+          let joke = data.setup + " ..... " + data.punchline
+          clippyAgent.stop()
+          clippyAgent.speak(joke);
+          clippyAgent.animate()
+        });
+      }
+
+      socket.on("connect", (data) => {
+        socket.emit("joinGame", { user: user });
+        clippy.load(chooseClippyAgent(), function(agent){
+          clippyAgent = agent
+          agent.show();
+          agent.moveTo(100,100);
+          agent.animate()
+        });
+      });
+
+      socket.on("disconnect", (data) => {
+        console.log(data);
+        socket.emit("leaveGame", { user: user });
+      });
+
+      socket.on("playerJoined", (data) => {
+        setState(data)
+        console.log(data);
+      });
+
+      socket.on("playerLeft", (data) => {
+        setState(data)
+        console.log(data);
+      });
+
+      socket.on("cardDrawn", (data) => {
+        console.log(data);
+        $("#top-card").empty().append(data.card);
+        $("#cards-left").empty().append(data.size);
+        setState(data)        
+        clippyAgentJoke()
+      });
+
+      $("#top-card").on("click", function () {
+        socket.emit("drawCard", { user: user });
+      });
+
+      $("#reset").on("click", function () {
+        socket.emit("resetGame", { user: user });
+      });
+
+      $("#save").on("click", function () {
+        // FIX: Allows for users with duplicate names
+        let userName = $("#name").empty().val();
+        user.name = userName
+        socket.emit("updatePlayerName", { user: user });
+      });
+
+      socket.on("playersNameUpdated", (data) => {
+        console.log(data);
+      });
+    });
+  </script>
 </body>
-<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
-<script src="{{ url_for('static', filename='js/name.js') }}"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script type="text/javascript" type="text/javascript" charset="utf-8">
-  $(function () {
-    let user = {
-      id: Math.floor(Math.random() * Math.floor(10000)),
-      name: generateName()
-    }
-    var socket = io();
-
-    let setState = (data) => {
-      $("#name").attr("placeholder", "Your name: " + user.name);
-
-      $("#next-players-turn").empty().append("Coming up is.. " + data.nextPlayer.name + "!")
-      $("#current-players-turn").empty().append("But first, " + data.currentPlayer.name + " drew...")
-    }
-
-    socket.on("connect", (data) => {
-      socket.emit("joinGame", { user: user });
-    });
-
-    socket.on("disconnect", (data) => {
-      console.log(data);
-      socket.emit("leaveGame", { user: user });
-    });
-
-    socket.on("playerJoined", (data) => {
-      setState(data)
-      console.log(data);
-    });
-
-    socket.on("playerLeft", (data) => {
-      setState(data)
-      console.log(data);
-    });
-
-    socket.on("cardDrawn", (data) => {
-      console.log(data);
-      $("#top-card").empty().append(data.card);
-      $("#cards-left").empty().append(data.size);
-      setState(data)
-    });
-
-    $("#top-card").on("click", function () {
-      socket.emit("drawCard", { user: user });
-    });
-
-    $("#reset").on("click", function () {
-      socket.emit("resetGame", { user: user });
-    });
-
-    $("#save").on("click", function () {
-      // FIX: Allows for users with duplicate names
-      let userName = $("#name").empty().val();
-      user.name = userName
-      socket.emit("updatePlayerName", { user: user });
-    });
-
-    socket.on("playersNameUpdated", (data) => {
-      console.log(data);
-    });
-  });
-</script>
 
 </html>

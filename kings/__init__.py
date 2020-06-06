@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+import os
+from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO, emit
 import random
 import itertools
@@ -122,6 +123,13 @@ players = Players()
 def index():
     card, size = deck.top_card()
     return render_template("index.html", card=card, size=size)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(
+        os.path.join(app.root_path, 'static'),
+        'favicon.ico', mimetype='image/vnd.microsoft.icon'
+    )
 
 
 @ socketio.on("joinGame")
