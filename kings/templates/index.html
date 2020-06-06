@@ -1,66 +1,124 @@
 <html>
-  <head>
-    <style>
-      body {
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-      }
-      #top-card {
-        font-size: 50vw;
-      }
-      #cards-left {
-        font: bold italics;
-      }
-      #reset {
-        border-style: none;
-        position: fixed;
-        left: 50%;
-        bottom: 20px;
-        transform: translate(-50%, -50%);
-        margin: 0 auto;
-      }
-    </style>
-  </head>
-  <body>
-    <center>
+
+<head>
+  <style>
+    body {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    #current-players-turn,
+    #next-players-turn {
+      font-size: 3vw;
+    }
+
+    #top-card {
+      font-size: 50vw;
+    }
+
+    #cards-left {
+      font: bold italics;
+    }
+
+    #reset {
+      border-style: none;
+      margin: 20 auto;
+    }
+
+    #name {
+      margin: auto;
+      width: 200;
+    }
+  </style>
+</head>
+
+<body>
+  <center>
+    <div>
+      <font id="next-players-turn">{{ player|safe }}</font>
+    </div>
+    <div>
+      <font id="current-players-turn">{{ player|safe }}</font>
+    </div>
+    <div>
       <font id="top-card">{{ card|safe }}</font>
-      <br />
-      <font id="cards-left">{{size}}</font>
-      <input type="button" id="reset" value="Reset Game" />
-    </center>
-  </body>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script type="text/javascript" charset="utf-8">
-    $(function () {
-      var user = Math.floor(Math.random() * Math.floor(1000));
-      var socket = io();
+    </div>
+    <div>
+      <font id="cards-left">{{size}}</font> <input type="button" id="reset" value="Reset Game" />
+    </div>
+    <div>
+      <input type="text" id="name" name="name" placeholder="Your name">
+      <input type="button" id="save" value="Save" />
+    </div>
+  </center>
+</body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/name.js') }}"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript" type="text/javascript" charset="utf-8">
+  $(function () {
+    let user = {
+      id: Math.floor(Math.random() * Math.floor(10000)),
+      name: generateName()
+    }
+    var socket = io();
 
-      socket.on("connect", (data) => {
-        socket.emit("joinGame", { user: user });
-      });
+    let setState = (data) => {
+      $("#name").attr("placeholder", "Your name: " + user.name);
 
-      socket.on("playerJoined", (data) => {
-        console.log(data);
-      });
+      $("#next-players-turn").empty().append("Coming up is.. " + data.nextPlayer.name + "!")
+      $("#current-players-turn").empty().append("But first, " + data.currentPlayer.name + " drew...")
+    }
 
-      socket.on("cardDrawn", (data) => {
-        console.log(data);
-        $("#top-card").empty().append(data.card);
-        $("#cards-left").empty().append(data.size);
-      });
-
-      $("#top-card").on("click", function () {
-        socket.emit("drawCard", { user: user });
-      });
-
-      $("#reset").on("click", function () {
-        socket.emit("resetGame", { user: user });
-      });
+    socket.on("connect", (data) => {
+      socket.emit("joinGame", { user: user });
     });
-  </script>
+
+    socket.on("disconnect", (data) => {
+      console.log(data);
+      socket.emit("leaveGame", { user: user });
+    });
+
+    socket.on("playerJoined", (data) => {
+      setState(data)
+      console.log(data);
+    });
+
+    socket.on("playerLeft", (data) => {
+      setState(data)
+      console.log(data);
+    });
+
+    socket.on("cardDrawn", (data) => {
+      console.log(data);
+      $("#top-card").empty().append(data.card);
+      $("#cards-left").empty().append(data.size);
+      setState(data)
+    });
+
+    $("#top-card").on("click", function () {
+      socket.emit("drawCard", { user: user });
+    });
+
+    $("#reset").on("click", function () {
+      socket.emit("resetGame", { user: user });
+    });
+
+    $("#save").on("click", function () {
+      // FIX: Allows for users with duplicate names
+      let userName = $("#name").empty().val();
+      user.name = userName
+      socket.emit("updatePlayerName", { user: user });
+    });
+
+    socket.on("playersNameUpdated", (data) => {
+      console.log(data);
+    });
+  });
+</script>
+
 </html>
